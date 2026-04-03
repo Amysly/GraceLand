@@ -1,5 +1,6 @@
 const asyncHandler = require('express-async-handler');
 const Admission = require('../../models/Admission/AdmissionModel');
+const sendEmail  =  require('../../utils/sendEmail')
 
 
 const createAdmission = asyncHandler(async (req, res) => {
@@ -88,8 +89,15 @@ const admissionStatus = asyncHandler(async (req, res)=>{
         
     }
 
+
     const{status} = req.body;
     const admissionId = req.params.id;
+
+     // Validate status is provided
+    if (!status) {
+        res.status(400);
+        throw new Error("Status is required. Please provide 'approved' or 'rejected'.");
+    }
 
    const  admission = await Admission.findById(admissionId)
 
@@ -98,13 +106,39 @@ const admissionStatus = asyncHandler(async (req, res)=>{
      throw new Error("Admission not found");
    }
 
-  if ([!"approved", "rejected"].includes(status)) {
+  if (!["approved", "rejected"].includes(status)) {
     res.status(400)
     throw new Error("Invalid status value. Must be 'approved' or 'rejected'");
   }
-  // update and save
+
+ // update and save
   admission.status = status
-  await Admission.save()
+  await admission.save()
+
+ // send email only if approved
+    if (status === 'approved') {
+      await sendEmail({
+    email: admission.personalInfo.email,
+    subject: "Admission Approved",
+    message: `Congratulations ${admission.name}`,
+    subject: "Admission Approved - Graceland Theological Seminary",
+    message: `Congratulations ${admission.personalInfo.fullName},
+
+    Your admission has been approved!
+
+    Application Details:
+    - Program: ${admission.enrollmentInfo.programType}
+    - Department: ${admission.enrollmentInfo.department}
+    - Start Date: ${admission.enrollmentInfo.startMonth} ${admission.enrollmentInfo.startYear}
+
+    Please proceed to the portal to complete your registration.
+
+    Best regards,
+    Admissions Office
+    Graceland Theological Seminary`,
+      })
+    }
+  
 
     res.status(200).json({
     message: `Admission ${status} successfully`,

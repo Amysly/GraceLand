@@ -21,6 +21,7 @@ app.use('/api/lecturer/student-courses', require('./routes/teacherRoute/lecturer
 app.use('/api/admin/courses', require('./routes/adminCourseRoute'))
 app.use("/api/student/courses", require("./routes/coursesRoutes"));
 app.use('/api/admin/create-departments', require('./routes/departmentRoutes'));
+app.use('/api/admin/create-faculties', require('./routes/facultyRoutes'));
 app.use('/api/registercourse', require('./routes/courseRegistrationRoutes'))
 app.use('/api/admin', require('./routes/adminRoute'))
 app.use('/api/results', require('./routes/resultRoutes'))
