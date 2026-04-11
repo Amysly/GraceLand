@@ -3,6 +3,7 @@ const asyncHandler = require('express-async-handler');
 const User = require('../models/userModel');
 const LecturerCourseAssignment = require('../models/teacherModels/lecturerCourseAssignment')
 const Course = require('../models/courseModel');
+const { generateToken } = require('../utils/generateToken');
 const { populate } = require('dotenv');
 
 
@@ -130,7 +131,6 @@ const adminCreateUser = asyncHandler(async (req, res) => {
     staffId: user.staffId,
     department: user.department,
     role: user.role,
-    token: generateToken(user._id),
   });
 });
 

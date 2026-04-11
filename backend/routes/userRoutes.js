@@ -4,6 +4,8 @@ const {
   registerUser,
   updateProfileImage,
   login,
+  logOut,
+  refresh,
   getMe
 } = require('../controller/userController');
 
@@ -41,6 +43,8 @@ const upload = multer({
 // === Routes ===
 router.post('/', registerUser);
 router.post('/login', login);
+router.post('/logout', logOut);
+router.post('/refresh', refresh);
 router.get('/me', protect, getMe);
 
 // Profile image upload (protected route)

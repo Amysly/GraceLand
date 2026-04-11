@@ -1,19 +1,16 @@
 const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
 const asyncHandler = require('express-async-handler');
-const User = require('../models/userModel')
-// generate JWT
-const generateToken = (id) => {
-  return jwt.sign({ id }, process.env.JWT_SECRET, {
-    expiresIn: '30d',
-  });
-};
+const User = require('../models/userModel');
+const { JWT_SECRET } = require('../utils/getJwtSecret');
+const { generateToken } = require('../utils/generateToken');
+
+
 
 // @desc    Register a new user
 // @route   POST /api/user
 const registerUser = asyncHandler(async (req, res) => {
   const { name, email, password, role, level, matriNumber, department, staffId } =
-    req.body;
+    req.body || {};
 
   // COMMON FIELDS FOR ALL USERS
   if (!name || !email || !password || !role) {
@@ -65,8 +62,22 @@ const registerUser = asyncHandler(async (req, res) => {
     role, 
   });
 
+  //create Tokens
+  const payload = { userId: user._id.toString() }
+  const accessToken = await generateToken(payload, '1m');
+  const refreshToken = await generateToken(payload, '30d');
+
+  //Set refresh token in HTTP-Only cookie
+  res.cookie('refreshToken', refreshToken, {
+    httpOnly:true,
+    secure:process.env.NODE_ENV === 'production',
+    sameSite:'lax',
+    maxAge: 30*24*60*60*1000 //30 days
+  })
+
   if (user) {
     res.status(201).json({
+      accessToken,
       _id: user._id,
       name: user.name,
       email: user.email,
@@ -75,7 +86,6 @@ const registerUser = asyncHandler(async (req, res) => {
       staffId: user.staffId,
       department : user.department,
       role: user.role, // send role back in response too
-      token: generateToken(user._id),
     });
   } else {
     res.status(400);
@@ -111,7 +121,7 @@ const updateProfileImage = asyncHandler(async (req, res) => {
 
 // Login 
 const login = asyncHandler(async (req, res) => {
-  const { matriNumber, staffId, password } = req.body;
+  const { matriNumber, staffId, password } = req.body || {};
 
   if (!password || (!matriNumber && !staffId)) {
     res.status(400);
@@ -126,8 +136,22 @@ const login = asyncHandler(async (req, res) => {
     user = await User.findOne({ matriNumber: matriNumber.toUpperCase() });
   }
 
+   //create Tokens
+  const payload = { userId: user._id.toString() }
+  const accessToken = await generateToken(payload, '1m');
+  const refreshToken = await generateToken(payload, '30d');
+
+  //Set refresh token in HTTP-Only cookie
+  res.cookie('refreshToken', refreshToken, {
+    httpOnly:true,
+    secure:process.env.NODE_ENV === 'production',
+    sameSite:'lax',
+    maxAge: 30*24*60*60*1000 //30 days
+  })
+
   if (user && (await bcrypt.compare(password, user.password))) {
     res.status(200).json({
+      accessToken,
       _id: user.id,
       name: user.name,
       email: user.email,
@@ -136,7 +160,6 @@ const login = asyncHandler(async (req, res) => {
       staffId: user.staffId,
       department: user.department,
       role: user.role,
-      token: generateToken(user._id),
     });
   } else {
     res.status(400);
@@ -158,9 +181,48 @@ const getMe = asyncHandler(async (req, res) => {
 });
 
 
+const logOut = asyncHandler(async (req, res) => {
+  res.clearCookie('refreshToken', {
+    httpOnly:true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite:'lax'
+  })
+  res.status(200).json({message:'logged out successfully'})
+})
+
+//Generate new access token from refresh token
+//public(Needs valid refresh token in cookie)
+
+const refresh = asyncHandler(async (req,res) => {
+  const token = req.cookies?.refreshToken;
+  if (!token) {
+    res.status(401)
+    throw new Error('No refresh token')
+  }
+  const { jwtVerify } = await import('jose');
+  const {payload} = await jwtVerify(token, JWT_SECRET)
+  const user = await User.findById(payload.userId)
+  
+  if (!user) {
+    res.status(401);
+    throw new Error('No user')
+  }
+  const newAccessToken = await generateToken({userId: user._id.toString()}, '1m')
+  res.json({
+    accessToken: newAccessToken,
+    user:{
+      id:user._id,
+      name:user.name,
+      email:user.email
+    }
+  })
+})
+
 module.exports = {
   registerUser,
   login,
   getMe,
+  logOut,
   updateProfileImage,
+  refresh
 };

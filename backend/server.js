@@ -4,7 +4,7 @@ const colors = require('colors')
 const connectDB = require('./config/db')
 const {errorHandler} = require('./middleware/errorMiddleWare')
 const path = require('path');   
-
+const cookieParser = require("cookie-parser");
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -12,6 +12,7 @@ connectDB()
 
 app.use(express.json())
 app.use(express.urlencoded({extended:false}))
+app.use(cookieParser())
 
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
 app.use('/api/users/', require('./routes/userRoutes'))

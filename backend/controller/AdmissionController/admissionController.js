@@ -126,11 +126,6 @@ const admissionStatus = asyncHandler(async (req, res)=>{
 
     Your admission has been approved!
 
-    Application Details:
-    - Program: ${admission.enrollmentInfo.programType}
-    - Department: ${admission.enrollmentInfo.department}
-    - Start Date: ${admission.enrollmentInfo.startMonth} ${admission.enrollmentInfo.startYear}
-
     Please proceed to the portal to complete your registration.
 
     Best regards,

@@ -1,6 +1,6 @@
-const jwt = require('jsonwebtoken');
 const asyncHandler = require('express-async-handler');
 const User = require('../models/userModel');
+const { JWT_SECRET } = require('../utils/getJwtSecret');
 
 const protect = asyncHandler(async (req, res, next) => {
   let token;
@@ -11,11 +11,10 @@ const protect = asyncHandler(async (req, res, next) => {
   ) {
     try {
       token = req.headers.authorization.split(' ')[1];
+      const { jwtVerify } = await import('jose');
+      const { payload } = await jwtVerify(token, JWT_SECRET);
 
-      const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-      // Populate department
-      req.user = await User.findById(decoded.id)
+      req.user = await User.findById(payload.userId)
         .select('-password')
         .populate('department', '_id departmentName');
 
