@@ -1,33 +1,47 @@
-const express = require('express')
-const dotenv = require('dotenv').config()
-const colors = require('colors')
-const connectDB = require('./config/db')
-const {errorHandler} = require('./middleware/errorMiddleWare')
-const path = require('path');   
+const express = require("express");
+const dotenv = require("dotenv").config();
+const colors = require("colors");
+const connectDB = require("./config/db");
+const { errorHandler } = require("./middleware/errorMiddleWare");
+const path = require("path");
 const cookieParser = require("cookie-parser");
 
 const app = express();
 const port = process.env.PORT || 5000;
-connectDB()
+connectDB();
 
-app.use(express.json())
-app.use(express.urlencoded({extended:false}))
-app.use(cookieParser())
+app.use(
+  express.json({
+    verify: (req, res, buf) => {
+      req.rawBody = buf;
+    },
+  }),
+);
 
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')))
-app.use('/api/users/', require('./routes/userRoutes'))
-app.use('/api/admission/', require('./routes/admissionRoute/admissionRoute'))
-app.use('/api/lecturer/student-assignment', require('./routes/teacherRoute/assignmentRoute'))
-app.use('/api/lecturer/student-courses', require('./routes/teacherRoute/lecturerRoute'))
-app.use('/api/admin/courses', require('./routes/adminCourseRoute'))
+app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser());
+
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+app.use("/api/users/", require("./routes/userRoutes"));
+app.use("/api/admission/", require("./routes/admissionRoute/admissionRoute"));
+app.use(
+  "/api/lecturer/student-assignment",
+  require("./routes/teacherRoute/assignmentRoute"),
+);
+app.use(
+  "/api/lecturer/student-courses",
+  require("./routes/teacherRoute/lecturerRoute"),
+);
+app.use("/api/admin/courses", require("./routes/adminCourseRoute"));
 app.use("/api/student/courses", require("./routes/coursesRoutes"));
-app.use('/api/admin/create-departments', require('./routes/departmentRoutes'));
-app.use('/api/admin/create-faculties', require('./routes/facultyRoutes'));
-app.use('/api/registercourse', require('./routes/courseRegistrationRoutes'))
-app.use('/api/admin', require('./routes/adminRoute'))
-app.use('/api/results', require('./routes/resultRoutes'))
+app.use("/api/admin/create-departments", require("./routes/departmentRoutes"));
+app.use("/api/admin/create-faculties", require("./routes/facultyRoutes"));
+app.use("/api/registercourse", require("./routes/courseRegistrationRoutes"));
+app.use("/api/admin", require("./routes/adminRoute"));
+app.use("/api/results", require("./routes/resultRoutes"));
+app.use("/api/payments", require("./routes/paymentRoute"));
 
-app.use(errorHandler)
+app.use(errorHandler);
 
 app.listen(port, () => {
   console.log(`Server running on port ${port}`.cyan.underline);
