@@ -65,12 +65,25 @@ const verifyPayment = asyncHandler(async (req, res) => {
   // Don't just trust the redirect — check with Paystack directly
   const paystackData = await verifyTransaction(reference);
 
-  if (paystackData.status === "success" && payment.status !== "success") {
+  // Never trust status alone — confirm the amount actually paid matches
+  // what we requested, so a tampered/short payment can't be marked as paid.
+  const amountMatches = paystackData.amount === payment.amountInKobo;
+
+  if (
+    paystackData.status === "success" &&
+    amountMatches &&
+    payment.status !== "success"
+  ) {
     payment.status = "success";
     payment.paystackData = paystackData;
     await payment.save();
 
     // TODO: mark the related record (e.g. Admission) as paid here
+  } else if (paystackData.status === "success" && !amountMatches) {
+    // Amount mismatch — flag for manual review rather than auto-confirming
+    payment.status = "failed";
+    payment.paystackData = paystackData;
+    await payment.save();
   } else if (paystackData.status !== "success") {
     payment.status =
       paystackData.status === "abandoned" ? "abandoned" : "failed";
@@ -106,12 +119,18 @@ const paystackWebhook = asyncHandler(async (req, res) => {
       // Re-verify server-to-server rather than trusting webhook payload alone
       const paystackData = await verifyTransaction(reference);
 
-      if (paystackData.status === "success") {
+      const amountMatches = paystackData.amount === payment.amountInKobo;
+
+      if (paystackData.status === "success" && amountMatches) {
         payment.status = "success";
         payment.paystackData = paystackData;
         await payment.save();
 
         // TODO: mark the related record (e.g. Admission) as paid here
+      } else if (paystackData.status === "success" && !amountMatches) {
+        payment.status = "failed";
+        payment.paystackData = paystackData;
+        await payment.save();
       }
     }
   }
