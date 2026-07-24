@@ -1,16 +1,22 @@
-const bcrypt = require('bcryptjs');
-const asyncHandler = require('express-async-handler');
-const User = require('../models/userModel');
-const { JWT_SECRET } = require('../utils/getJwtSecret');
-const { generateToken } = require('../utils/generateToken');
-
-
+const bcrypt = require("bcryptjs");
+const asyncHandler = require("express-async-handler");
+const User = require("../models/userModel");
+const { JWT_SECRET } = require("../utils/getJwtSecret");
+const { generateToken } = require("../utils/generateToken");
 
 // @desc    Register a new user
 // @route   POST /api/user
 const registerUser = asyncHandler(async (req, res) => {
-  const { name, email, password, role, level, matriNumber, department, staffId } =
-    req.body || {};
+  const {
+    name,
+    email,
+    password,
+    role,
+    level,
+    matriNumber,
+    department,
+    staffId,
+  } = req.body || {};
 
   // COMMON FIELDS FOR ALL USERS
   if (!name || !email || !password || !role) {
@@ -37,20 +43,18 @@ const registerUser = asyncHandler(async (req, res) => {
     // Admin only needs name, email, password, role
     // (department, level, etc. are NOT required)
   }
-  
 
   // check if user exists
   const userExists = await User.findOne({ email });
   if (userExists) {
     res.status(400);
-    throw new Error('User already exists');
+    throw new Error("User already exists");
   }
 
   // hash password
   const salt = await bcrypt.genSalt(10);
   const hashedPassword = await bcrypt.hash(password, salt);
 
-  
   const user = await User.create({
     name,
     email,
@@ -59,21 +63,21 @@ const registerUser = asyncHandler(async (req, res) => {
     matriNumber,
     staffId,
     department,
-    role, 
+    role,
   });
 
   //create Tokens
-  const payload = { userId: user._id.toString() }
-  const accessToken = await generateToken(payload, '1m');
-  const refreshToken = await generateToken(payload, '30d');
+  const payload = { userId: user._id.toString() };
+  const accessToken = await generateToken(payload, "15m");
+  const refreshToken = await generateToken(payload, "30d");
 
   //Set refresh token in HTTP-Only cookie
-  res.cookie('refreshToken', refreshToken, {
-    httpOnly:true,
-    secure:process.env.NODE_ENV === 'production',
-    sameSite:'lax',
-    maxAge: 30*24*60*60*1000 //30 days
-  })
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 30 * 24 * 60 * 60 * 1000, //30 days
+  });
 
   if (user) {
     res.status(201).json({
@@ -82,14 +86,14 @@ const registerUser = asyncHandler(async (req, res) => {
       name: user.name,
       email: user.email,
       level: user.level,
-      matriNumber:user.matriNumber,
+      matriNumber: user.matriNumber,
       staffId: user.staffId,
-      department : user.department,
+      department: user.department,
       role: user.role, // send role back in response too
     });
   } else {
     res.status(400);
-    throw new Error('Invalid user data');
+    throw new Error("Invalid user data");
   }
 });
 
@@ -118,8 +122,7 @@ const updateProfileImage = asyncHandler(async (req, res) => {
   });
 });
 
-
-// Login 
+// Login
 const login = asyncHandler(async (req, res) => {
   const { matriNumber, staffId, password } = req.body || {};
 
@@ -131,23 +134,23 @@ const login = asyncHandler(async (req, res) => {
   let user;
 
   if (staffId) {
-    user = await User.findOne({staffId:  staffId.toUpperCase() });
+    user = await User.findOne({ staffId: staffId.toUpperCase() });
   } else if (matriNumber) {
     user = await User.findOne({ matriNumber: matriNumber.toUpperCase() });
   }
 
-   //create Tokens
-  const payload = { userId: user._id.toString() }
-  const accessToken = await generateToken(payload, '1m');
-  const refreshToken = await generateToken(payload, '30d');
+  //create Tokens
+  const payload = { userId: user._id.toString() };
+  const accessToken = await generateToken(payload, "15m");
+  const refreshToken = await generateToken(payload, "30d");
 
   //Set refresh token in HTTP-Only cookie
-  res.cookie('refreshToken', refreshToken, {
-    httpOnly:true,
-    secure:process.env.NODE_ENV === 'production',
-    sameSite:'lax',
-    maxAge: 30*24*60*60*1000 //30 days
-  })
+  res.cookie("refreshToken", refreshToken, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    maxAge: 30 * 24 * 60 * 60 * 1000, //30 days
+  });
 
   if (user && (await bcrypt.compare(password, user.password))) {
     res.status(200).json({
@@ -169,8 +172,10 @@ const login = asyncHandler(async (req, res) => {
 
 // Get logged-in user (placeholder)
 const getMe = asyncHandler(async (req, res) => {
-  const user = await User.findById(req.user.id)
-    .populate("department", "departmentName");
+  const user = await User.findById(req.user.id).populate(
+    "department",
+    "departmentName",
+  );
 
   if (!user) {
     res.status(404);
@@ -180,43 +185,45 @@ const getMe = asyncHandler(async (req, res) => {
   res.status(200).json(user);
 });
 
-
 const logOut = asyncHandler(async (req, res) => {
-  res.clearCookie('refreshToken', {
-    httpOnly:true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite:'lax'
-  })
-  res.status(200).json({message:'logged out successfully'})
-})
+  res.clearCookie("refreshToken", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+  });
+  res.status(200).json({ message: "logged out successfully" });
+});
 
 //Generate new access token from refresh token
 //public(Needs valid refresh token in cookie)
 
-const refresh = asyncHandler(async (req,res) => {
+const refresh = asyncHandler(async (req, res) => {
   const token = req.cookies?.refreshToken;
   if (!token) {
-    res.status(401)
-    throw new Error('No refresh token')
+    res.status(401);
+    throw new Error("No refresh token");
   }
-  const { jwtVerify } = await import('jose');
-  const {payload} = await jwtVerify(token, JWT_SECRET)
-  const user = await User.findById(payload.userId)
-  
+  const { jwtVerify } = await import("jose");
+  const { payload } = await jwtVerify(token, JWT_SECRET);
+  const user = await User.findById(payload.userId);
+
   if (!user) {
     res.status(401);
-    throw new Error('No user')
+    throw new Error("No user");
   }
-  const newAccessToken = await generateToken({userId: user._id.toString()}, '1m')
+  const newAccessToken = await generateToken(
+    { userId: user._id.toString() },
+    "15m",
+  );
   res.json({
     accessToken: newAccessToken,
-    user:{
-      id:user._id,
-      name:user.name,
-      email:user.email
-    }
-  })
-})
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+    },
+  });
+});
 
 module.exports = {
   registerUser,
@@ -224,5 +231,5 @@ module.exports = {
   getMe,
   logOut,
   updateProfileImage,
-  refresh
+  refresh,
 };
