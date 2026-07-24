@@ -3,11 +3,11 @@ const mongoose = require("mongoose");
 const admissionSchema = mongoose.Schema(
   {
     user: {
-  type: mongoose.Schema.Types.ObjectId,
-  ref: "User",
-},
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
+    },
 
-    // PERSONAL INFORMATION 
+    // PERSONAL INFORMATION
     personalInfo: {
       fullName: {
         type: String,
@@ -63,7 +63,7 @@ const admissionSchema = mongoose.Schema(
       },
     },
 
-    //  ENROLLMENT INFORMATION 
+    //  ENROLLMENT INFORMATION
     enrollmentInfo: {
       startMonth: {
         type: String,
@@ -84,6 +84,13 @@ const admissionSchema = mongoose.Schema(
         type: String,
         enum: ["Full Time", "Part Time", "Distance Learning"],
         required: [true, "Please select program type"],
+      },
+
+      // Which fee schedule applies to this student — Certificate/Diploma/Degree/PGD/Masters/PhD
+      programLevel: {
+        type: String,
+        enum: ["Certificate", "Diploma", "Degree", "PGD", "Masters", "PhD"],
+        required: [true, "Please select program level"],
       },
 
       department: {
@@ -123,7 +130,7 @@ const admissionSchema = mongoose.Schema(
       },
     },
 
-    // RELIGIOUS + EDUCATION 
+    // RELIGIOUS + EDUCATION
     religiousEducationInfo: {
       churchName: {
         type: String,
@@ -178,16 +185,45 @@ const admissionSchema = mongoose.Schema(
       },
     },
 
-    //  APPLICATION STATUS 
+    //  APPLICATION STATUS
     status: {
       type: String,
       enum: ["pending", "approved", "rejected"],
       default: "pending",
     },
+
+    // FEE TRACKING
+    applicationFeePaid: {
+      type: Boolean,
+      default: false,
+    },
+    applicationFeePaidAt: Date,
+
+    acceptanceFeePaid: {
+      type: Boolean,
+      default: false,
+    },
+    acceptanceFeePaidAt: Date,
+
+    // Semester fees repeat every term, so we keep a running history rather
+    // than a single boolean.
+    semesterPayments: [
+      {
+        session: { type: String, required: true }, // e.g. "2025/2026"
+        semester: {
+          type: String,
+          enum: ["First Semester", "Second Semester"],
+          required: true,
+        },
+        amountPaid: { type: Number, required: true }, // Naira
+        reference: { type: String, required: true },
+        paidAt: { type: Date, required: true },
+      },
+    ],
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 module.exports = mongoose.model("Admission", admissionSchema);
