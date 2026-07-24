@@ -11,11 +11,24 @@ const paymentSchema = mongoose.Schema(
     // What is this payment for
     purpose: {
       type: String,
-      enum: ["fees", "admission", "other"],
+      enum: ["applicationFee", "acceptanceFee", "semesterFee", "other"],
       required: [true, "Please specify what this payment is for"],
     },
 
-    // Free-text label for "other" or extra context, e.g. "2nd Semester Hostel Fee"
+    // Required for applicationFee/acceptanceFee/semesterFee — determines the amount from the fee schedule
+    programLevel: {
+      type: String,
+      enum: ["Certificate", "Diploma", "Degree", "PGD", "Masters", "PhD"],
+    },
+
+    // Required for semesterFee only — which term this payment covers
+    session: String, // e.g. "2025/2026"
+    semester: {
+      type: String,
+      enum: ["First Semester", "Second Semester"],
+    },
+
+    // Free-text label for "other", e.g. "Hostel Fee"
     description: {
       type: String,
     },
